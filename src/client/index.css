@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FAF6F0;
+    background-image:
+      radial-gradient(ellipse 85% 60% at 50% 10%, rgba(250, 246, 240, 0.55) 0%, rgba(250, 246, 240, 0.12) 70%, transparent 100%),
+      repeating-linear-gradient(
+        90deg,
+        #CBE0EE 0px,
+        #CBE0EE 26px,
+        #FAF6F0 26px,
+        #FAF6F0 52px
+      );
+    background-attachment: fixed;
+    color: #441910;
+    min-height: 100vh;
+    overflow-x: hidden;
+    letter-spacing: -0.005em;
+  }
+}
+
+/* Modern Editorial Coquette Card (Solid Cream + Sea Pink border + Beet Red shadow tint) */
+.coquette-card {
+  background: linear-gradient(180deg, #FFFDF9 0%, #FAF6F0 100%);
+  background-color: #FAF6F0;
+  border: 2px solid #E098AC;
+  border-radius: 2rem;
+  box-shadow:
+    inset 0 0 0 4px #FFFFFF,
+    0 14px 34px -8px rgba(104, 0, 44, 0.12),
+    0 4px 12px -3px rgba(68, 25, 16, 0.06);
+  position: relative;
+  z-index: 2;
+}
+
+.coquette-card-hover {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.coquette-card-hover:hover {
+  transform: translateY(-6px);
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 255, 255, 0.92),
+    0 22px 42px -10px rgba(104, 0, 44, 0.2),
+    0 10px 18px -6px rgba(224, 152, 172, 0.22);
+  border-color: #68002C;
+}
+
+/* Modern Glossy Beet Red & Sea Pink Button */
+.btn-coquette-rose {
+  background: linear-gradient(135deg, #82083B 0%, #68002C 60%, #520022 100%);
+  color: #FAF6F0;
+  box-shadow:
+    inset 0 1px 1px rgba(224, 152, 172, 0.45),
+    0 8px 20px -4px rgba(104, 0, 44, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-coquette-rose:hover {
+  background: linear-gradient(135deg, #68002C 0%, #48001E 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 1px rgba(224, 152, 172, 0.55),
+    0 12px 26px -4px rgba(104, 0, 44, 0.45);
+}
+
+/* Beet Red Dotted Divider with Center Emblem */
+.coquette-divider {
+  position: relative;
+  border: none;
+  border-top: 2.5px dotted #68002C;
+  opacity: 0.45;
+  margin: 2.5rem auto;
+  max-width: 88%;
+}
+.coquette-divider::after {
+  content: '✦  🎀  ✦';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #FAF6F0;
+  padding: 0.2rem 1rem;
+  border-radius: 9999px;
+  border: 1.5px solid #E098AC;
+  font-size: 0.75rem;
+  color: #68002C;
+  letter-spacing: 0.15em;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(104, 0, 44, 0.1);
+}
+
+/* Crystal Blue Star / Zigzag Price Badge */
+.star-price-tag {
+  background-color: #DFEEF7;
+  border: 2px solid #A6C9DD;
+  color: #68002C;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 4px 10px rgba(166, 201, 221, 0.35);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF6F0;
+}
+::-webkit-scrollbar-thumb {
+  background: #E098AC;
+  border-radius: 9999px;
+  border: 2px solid #FAF6F0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #68002C;
+}
+
+/* Accessibility: Respect users with prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Smooth, Uniform-Speed Floating / Falling Cat Paws Animation */
+@keyframes pawFall {
+  0% {
+    transform: translate3d(0, -100px, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, calc(100vh + 100px), 0);
+    opacity: 0;
+  }
+}
+
+@keyframes pawSway {
+  0% {
+    transform: translate3d(calc(-1 * var(--paw-sway, 20px)), 0, 0) rotate(var(--paw-init-rot, -12deg));
+  }
+  100% {
+    transform: translate3d(var(--paw-sway, 20px), 0, 0) rotate(var(--paw-end-rot, 24deg));
+  }
+}
+
+.falling-paw-track {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform, opacity;
+  animation-name: pawFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.falling-paw-body {
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+  animation-name: pawSway;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
