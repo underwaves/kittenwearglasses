@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { X, ExternalLink, AlertCircle, Link2, Check } from 'lucide-react'
+import { X, ExternalLink, AlertCircle, Link2, Check, Palette, Film, Image as ImageIcon } from 'lucide-react'
 import { parseVideoUrl } from '../../shared/videoParser'
+import { isGraphicWork } from '../../shared/workTypes'
 import { RibbonBow } from './decorations/RibbonBow'
 import { useToast } from './Toast'
 
@@ -12,6 +13,8 @@ export interface VideoModalProps {
   workId?: number
   orientation?: 'vertical' | 'horizontal'
   provider?: string
+  category?: string
+  coverKey?: string
 }
 
 export const VideoModal: React.FC<VideoModalProps> = ({
@@ -21,6 +24,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   title,
   workId,
   orientation = 'vertical',
+  category = '',
+  coverKey = '',
 }) => {
   const modalRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
@@ -29,9 +34,16 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   const [copiedLink, setCopiedLink] = useState(false)
   const { showToast } = useToast()
 
+  const isGraphic = isGraphicWork(category)
   const parsed = parseVideoUrl(videoUrl)
   const embedUrl = parsed.success ? parsed.data.embedUrl : ''
   const effectiveOrientation = orientation || 'vertical'
+
+  const coverSrc = coverKey
+    ? coverKey.startsWith('http')
+      ? coverKey
+      : `/media/${coverKey.replace(/^\/media\//, '')}`
+    : ''
 
   const handleCopyShareLink = async () => {
     const shareUrl = workId
@@ -120,7 +132,11 @@ export const VideoModal: React.FC<VideoModalProps> = ({
         {/* Header Bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-coquette-roseLight/60 bg-white/85">
           <div className="flex items-center space-x-2 truncate pr-2">
-            <RibbonBow size={24} />
+            {isGraphic ? (
+              <Palette size={22} className="text-coquette-rose flex-shrink-0" />
+            ) : (
+              <RibbonBow size={24} />
+            )}
             <h3
               id="video-modal-title"
               className="text-sm sm:text-base font-bold text-coquette-rose truncate"
@@ -128,6 +144,15 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             >
               {title}
             </h3>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 hidden sm:inline-block ${
+                isGraphic
+                  ? 'bg-[#FFF0F5] text-coquette-rose border-coquette-roseLight'
+                  : 'bg-white text-coquette-roseDark border-coquette-roseLight'
+              }`}
+            >
+              {isGraphic ? '🎨 งานกราฟิก' : '🎬 งานคอนเทนต์'}
+            </span>
           </div>
 
           <div className="flex items-center space-x-1.5 flex-shrink-0">
@@ -162,7 +187,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
         </div>
 
         {/* TikTok helper tip */}
-        {parsed.success && parsed.data.provider === 'tiktok' && (
+        {!isGraphic && parsed.success && parsed.data.provider === 'tiktok' && (
           <div className="px-3.5 py-2 bg-[#FFF8F0] border-b border-coquette-roseLight/60 flex items-center justify-between text-[11px] text-coquette-brown">
             <span className="truncate pr-2">
               🎀 สามารถกดเปิดดูคลิปต้นฉบับคมชัดเต็มจอบนแอป TikTok ได้เลยค่ะ
@@ -179,44 +204,79 @@ export const VideoModal: React.FC<VideoModalProps> = ({
           </div>
         )}
 
-        {/* Video Player Container */}
-        <div
-          className={`relative w-full bg-black flex items-center justify-center ${
-            effectiveOrientation === 'vertical'
-              ? 'aspect-[9/16] max-h-[75vh]'
-              : 'aspect-[16/9]'
-          }`}
-        >
-          {embedUrl && !loadError ? (
-            <iframe
-              src={embedUrl}
-              title={title}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-              onError={() => setLoadError(true)}
-            />
-          ) : (
-            <div className="p-6 text-center text-white bg-coquette-brown flex flex-col items-center justify-center space-y-3">
-              <AlertCircle size={36} className="text-coquette-roseLight" />
-              <p className="text-sm font-medium">
-                {loadError
-                  ? 'ไม่สามารถเล่นวิดีโอในหน้านี้ได้ชั่วคราว'
-                  : 'วิดีโออาจถูกตั้งค่าความเป็นส่วนตัว หรือต้องเปิดดูจากแอปต้นทาง'}
-              </p>
-              <a
-                href={videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-coquette-rose text-white text-xs sm:text-sm font-medium rounded-full shadow hover:bg-coquette-roseDark transition"
-              >
-                <span>เปิดดูที่ต้นทาง</span>
-                <ExternalLink size={14} />
-              </a>
+        {/* Media Container: Image for Graphic Work, Embed Video Player for Content Work */}
+        {isGraphic ? (
+          <div className="relative w-full bg-coquette-bgCream/70 flex flex-col items-center justify-center p-3 sm:p-5 overflow-hidden">
+            <div className="relative w-full flex items-center justify-center max-h-[72vh]">
+              {coverSrc ? (
+                <img
+                  src={coverSrc}
+                  alt={title}
+                  className="max-h-[68vh] w-auto max-w-full rounded-2xl object-contain shadow-coquette-lg border-2 border-coquette-roseLight/80 transition-transform duration-300 hover:scale-[1.01]"
+                />
+              ) : (
+                <div className="aspect-video w-full flex items-center justify-center text-coquette-brownMuted">
+                  <ImageIcon size={48} className="text-coquette-roseLight animate-pulse" />
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            <div className="mt-3 flex items-center justify-center space-x-2 text-xs text-coquette-brown flex-wrap gap-y-1">
+              <span className="px-3 py-1 rounded-full bg-white border border-coquette-roseLight font-medium">
+                🎨 ผลงานกราฟิก &amp; อาร์ตเวิร์ก {category ? `• ${category}` : ''}
+              </span>
+              {videoUrl && (
+                <a
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 rounded-full bg-coquette-rose text-white hover:bg-coquette-roseDark transition font-medium inline-flex items-center space-x-1"
+                >
+                  <span>เปิดดูไฟล์ต้นฉบับ</span>
+                  <ExternalLink size={11} />
+                </a>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div
+            className={`relative w-full bg-black flex items-center justify-center ${
+              effectiveOrientation === 'vertical'
+                ? 'aspect-[9/16] max-h-[75vh]'
+                : 'aspect-[16/9]'
+            }`}
+          >
+            {embedUrl && !loadError ? (
+              <iframe
+                src={embedUrl}
+                title={title}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                onError={() => setLoadError(true)}
+              />
+            ) : (
+              <div className="p-6 text-center text-white bg-coquette-brown flex flex-col items-center justify-center space-y-3">
+                <AlertCircle size={36} className="text-coquette-roseLight" />
+                <p className="text-sm font-medium">
+                  {loadError
+                    ? 'ไม่สามารถเล่นวิดีโอในหน้านี้ได้ชั่วคราว'
+                    : 'วิดีโออาจถูกตั้งค่าความเป็นส่วนตัว หรือต้องเปิดดูจากแอปต้นทาง'}
+                </p>
+                <a
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-coquette-rose text-white text-xs sm:text-sm font-medium rounded-full shadow hover:bg-coquette-roseDark transition"
+                >
+                  <span>เปิดดูที่ต้นทาง</span>
+                  <ExternalLink size={14} />
+                </a>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Footer info & Original link */}
         <div className="px-4 py-2.5 bg-coquette-bgCream flex items-center justify-between text-xs text-coquette-brownMuted border-t border-coquette-roseLight/40">

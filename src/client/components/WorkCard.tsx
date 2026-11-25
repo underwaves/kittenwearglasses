@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { Play, Smartphone, Monitor, ArrowUpRight } from 'lucide-react'
+import { Play, Smartphone, Monitor, ArrowUpRight, Palette, Film, Eye } from 'lucide-react'
 import { Work } from '../utils/api'
 import { StarSparkle } from './decorations/StarSparkle'
+import { getWorkType } from '../../shared/workTypes'
 
 interface WorkCardProps {
   work: Work
@@ -11,6 +12,8 @@ interface WorkCardProps {
 export const WorkCard: React.FC<WorkCardProps> = ({ work, onSelect }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
   const isVertical = work.orientation === 'vertical'
+  const workType = getWorkType(work.category)
+  const isGraphic = workType === 'graphic'
 
   const coverSrc = work.cover_key.startsWith('http')
     ? work.cover_key
@@ -34,7 +37,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, onSelect }) => {
       }}
       tabIndex={0}
       role="button"
-      aria-label={`เล่นวิดีโอ ${work.title}`}
+      aria-label={`${isGraphic ? 'ดูภาพกราฟิก' : 'เล่นวิดีโอ'} ${work.title}`}
       className="group coquette-card coquette-card-hover cursor-pointer overflow-hidden flex flex-col p-2.5 sm:p-3 focus:outline-none focus:ring-4 focus:ring-coquette-rose/30"
     >
       {/* Inset Rounded Thumbnail Container */}
@@ -64,22 +67,42 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, onSelect }) => {
         {/* Soft Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-coquette-brown/65 via-transparent to-black/10 opacity-55 group-hover:opacity-75 transition-opacity duration-300" />
 
-        {/* Center Glass Play Button */}
+        {/* Center Glass Action Button (Play for Video, Eye for Graphic) */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative">
             <div className="absolute -inset-2 rounded-full bg-coquette-rose/30 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/90 backdrop-blur-md text-coquette-rose border-2 border-coquette-roseLight shadow-lg flex items-center justify-center transform group-hover:scale-110 group-hover:bg-coquette-rose group-hover:text-white group-hover:border-white transition-all duration-300">
-              <Play size={20} className="ml-0.5 fill-current" />
+              {isGraphic ? (
+                <Eye size={20} className="fill-current" />
+              ) : (
+                <Play size={20} className="ml-0.5 fill-current" />
+              )}
             </div>
           </div>
         </div>
 
         {/* Top Badges */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5 pointer-events-none">
-          <span className="px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-white/90 text-coquette-brown backdrop-blur-md shadow-xs border border-coquette-roseLight/70 truncate">
-            {work.category}
-          </span>
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-coquette-priceBlue/95 text-coquette-rose border border-coquette-priceBorder shadow-xs flex-shrink-0">
+          <div className="flex items-center space-x-1 min-w-0">
+            {/* Work Type Badge: Content vs Graphic */}
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-md shadow-xs border flex items-center space-x-1 flex-shrink-0 ${
+                isGraphic
+                  ? 'bg-[#FFF0F5]/95 text-coquette-rose border-coquette-roseLight'
+                  : 'bg-white/95 text-coquette-roseDark border-coquette-roseLight'
+              }`}
+            >
+              {isGraphic ? <Palette size={10} /> : <Film size={10} />}
+              <span>{isGraphic ? 'งานกราฟิก' : 'คอนเทนต์'}</span>
+            </span>
+
+            {/* Sub-Category Badge */}
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/90 text-coquette-brown backdrop-blur-md shadow-xs border border-coquette-roseLight/70 truncate hidden xs:inline-block sm:inline-block">
+              {work.category}
+            </span>
+          </div>
+
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-coquette-priceBlue/95 text-coquette-rose border border-coquette-priceBorder shadow-xs flex-shrink-0">
             {providerLabel}
           </span>
         </div>
@@ -106,7 +129,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, onSelect }) => {
           </span>
 
           <span className="inline-flex items-center space-x-0.5 text-coquette-rose font-semibold group-hover:translate-x-0.5 transition-transform">
-            <span>เล่นคลิป</span>
+            <span>{isGraphic ? 'ดูภาพผลงาน' : 'เล่นคลิป'}</span>
             <ArrowUpRight size={13} />
           </span>
         </div>

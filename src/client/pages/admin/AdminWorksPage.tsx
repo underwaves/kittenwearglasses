@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   adminGetWorks,
   adminCreateWork,
@@ -9,6 +9,7 @@ import {
   Work,
 } from '../../utils/api'
 import { parseVideoUrl } from '../../../shared/videoParser'
+import { getWorkType, WorkMainType } from '../../../shared/workTypes'
 import { optimizeImage } from '../../utils/imageOptimizer'
 import { useToast } from '../../components/Toast'
 import {
@@ -25,6 +26,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Film,
+  Palette,
+  Sparkles,
   X,
 } from 'lucide-react'
 
@@ -34,9 +37,14 @@ export const AdminWorksPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingWork, setEditingWork] = useState<Work | null>(null)
 
+  // Filter in admin table
+  const [adminTypeFilter, setAdminTypeFilter] = useState<WorkMainType>('all')
+
   // Form State
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('Shorts/Reels/TikTok')
+  const [customCategory, setCustomCategory] = useState('')
+  const [isCustomCategory, setIsCustomCategory] = useState(false)
   const [orientation, setOrientation] = useState<'vertical' | 'horizontal'>('vertical')
   const [videoUrl, setVideoUrl] = useState('')
   const [coverKey, setCoverKey] = useState('')
@@ -72,6 +80,8 @@ export const AdminWorksPage: React.FC = () => {
     setEditingWork(null)
     setTitle('')
     setCategory('Shorts/Reels/TikTok')
+    setCustomCategory('')
+    setIsCustomCategory(false)
     setOrientation('vertical')
     setVideoUrl('')
     setCoverKey('')
@@ -85,7 +95,28 @@ export const AdminWorksPage: React.FC = () => {
   const handleOpenEdit = (work: Work) => {
     setEditingWork(work)
     setTitle(work.title)
-    setCategory(work.category)
+
+    const standardCategories = [
+      'Shorts/Reels/TikTok',
+      'Vlog',
+      'วิดีโอคอนเทนต์/รีวิว',
+      'งานกราฟิก - ปกคลิป (Thumbnail)',
+      'งานกราฟิก - แบนเนอร์ (Banner)',
+      'งานกราฟิก - อาร์ตเวิร์ก (Artwork)',
+      'งานกราฟิก - โซเชียลมีเดีย',
+      'อื่นๆ',
+    ]
+
+    if (standardCategories.includes(work.category)) {
+      setCategory(work.category)
+      setIsCustomCategory(false)
+      setCustomCategory('')
+    } else {
+      setCategory('custom')
+      setIsCustomCategory(true)
+      setCustomCategory(work.category)
+    }
+
     setOrientation(work.orientation)
     setVideoUrl(work.video_url)
     setCoverKey(work.cover_key)
@@ -96,6 +127,22 @@ export const AdminWorksPage: React.FC = () => {
     setIsVisible(work.is_visible === 1)
     setModalOpen(true)
   }
+
+  // Counts
+  const contentCount = useMemo(
+    () => works.filter((w) => getWorkType(w.category) === 'content').length,
+    [works]
+  )
+  const graphicCount = useMemo(
+    () => works.filter((w) => getWorkType(w.category) === 'graphic').length,
+    [works]
+  )
+
+  // Filtered works for table
+  const filteredWorks = useMemo(() => {
+    if (adminTypeFilter === 'all') return works
+    return works.filter((w) => getWorkType(w.category) === adminTypeFilter)
+  }, [works, adminTypeFilter])
 
   // When video URL changes and it's YouTube, auto-suggest cover if customCover is false
   useEffect(() => {
@@ -153,6 +200,12 @@ export const AdminWorksPage: React.FC = () => {
       return
     }
 
+    const finalCategory = isCustomCategory ? customCategory.trim() : category
+    if (!finalCategory) {
+      showToast('กรุณาระบุหมวดหมู่ผลงาน', 'error')
+      return
+    }
+
     if (!videoParse.success) {
       showToast(videoParse.error, 'error')
       return
@@ -181,7 +234,7 @@ export const AdminWorksPage: React.FC = () => {
     try {
       const payload = {
         title,
-        category,
+        category: finalCategory,
         orientation,
         video_url: videoUrl,
         cover_key: finalCover,
@@ -262,10 +315,10 @@ export const AdminWorksPage: React.FC = () => {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-coquette-rose flex items-center space-x-2">
             <Film size={24} />
-            <span>จัดการผลงานวิดีโอ (Portfolio)</span>
+            <span>จัดการผลงาน (Portfolio CMS)</span>
           </h2>
           <p className="text-xs sm:text-sm text-coquette-brownMuted">
-            เพิ่ม แก้ไข ลบ และเรียงลำดับผลงานที่แสดงบนหน้าเว็บ (รวมทั้งหมด {works.length} รายการ)
+            เพิ่ม แก้ไข ลบ และจัดเรียงผลงานทั้งงานคอนเทนต์และงานกราฟิก (รวมทั้งหมด {works.length} รายการ)
           </p>
         </div>
 
@@ -278,18 +331,60 @@ export const AdminWorksPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Main Type Filter Tabs (Admin) */}
+      <div className="flex items-center space-x-2 flex-wrap gap-y-1.5 bg-white p-2 rounded-2xl border border-coquette-roseLight/70 shadow-xs">
+        <button
+          type="button"
+          onClick={() => setAdminTypeFilter('all')}
+          className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition ${
+            adminTypeFilter === 'all'
+              ? 'bg-coquette-rose text-white shadow-xs'
+              : 'text-coquette-brown hover:bg-coquette-roseBg hover:text-coquette-rose'
+          }`}
+        >
+          ทั้งหมด ({works.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setAdminTypeFilter('content')}
+          className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 ${
+            adminTypeFilter === 'content'
+              ? 'bg-coquette-rose text-white shadow-xs'
+              : 'text-coquette-brown hover:bg-coquette-roseBg hover:text-coquette-rose'
+          }`}
+        >
+          <Film size={13} />
+          <span>🎬 งานคอนเทนต์ ({contentCount})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setAdminTypeFilter('graphic')}
+          className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 ${
+            adminTypeFilter === 'graphic'
+              ? 'bg-coquette-rose text-white shadow-xs'
+              : 'text-coquette-brown hover:bg-coquette-roseBg hover:text-coquette-rose'
+          }`}
+        >
+          <Palette size={13} />
+          <span>🎨 งานกราฟิก ({graphicCount})</span>
+        </button>
+      </div>
+
       {/* Works List / Table */}
       {loading ? (
         <div className="coquette-card p-12 text-center text-coquette-brownMuted">
           กำลังโหลดรายการผลงาน...
         </div>
-      ) : works.length === 0 ? (
+      ) : filteredWorks.length === 0 ? (
         <div className="coquette-card p-12 text-center text-coquette-brownMuted">
-          ยังไม่มีผลงานในระบบ คลิกปุ่ม "เพิ่มผลงานใหม่" เพื่อเริ่มต้น
+          {works.length === 0
+            ? 'ยังไม่มีผลงานในระบบ คลิกปุ่ม "เพิ่มผลงานใหม่" เพื่อเริ่มต้น'
+            : 'ไม่พบผลงานในหมวดที่เลือก'}
         </div>
       ) : (
         <div className="space-y-3">
-          {works.map((work, index) => {
+          {filteredWorks.map((work, index) => {
+            const isGraphic = getWorkType(work.category) === 'graphic'
             const coverSrc = work.cover_key.startsWith('http')
               ? work.cover_key
               : `/media/${work.cover_key.replace(/^\/media\//, '')}`
@@ -315,7 +410,7 @@ export const AdminWorksPage: React.FC = () => {
                     </button>
                     <button
                       onClick={() => handleMove(index, 'down')}
-                      disabled={index === works.length - 1}
+                      disabled={index === filteredWorks.length - 1}
                       className="p-1 rounded bg-coquette-bgCream hover:bg-coquette-roseBg disabled:opacity-30 text-coquette-brown"
                       title="เลื่อนลง"
                     >
@@ -338,6 +433,18 @@ export const AdminWorksPage: React.FC = () => {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                      {/* Main Type badge */}
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center space-x-1 ${
+                          isGraphic
+                            ? 'bg-[#FFF0F5] text-coquette-rose border-coquette-roseLight'
+                            : 'bg-white text-coquette-roseDark border-coquette-roseLight'
+                        }`}
+                      >
+                        {isGraphic ? <Palette size={10} /> : <Film size={10} />}
+                        <span>{isGraphic ? 'งานกราฟิก' : 'งานคอนเทนต์'}</span>
+                      </span>
+
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-coquette-priceBlue text-coquette-rose border border-coquette-priceBorder">
                         {work.provider.toUpperCase()}
                       </span>
@@ -471,33 +578,60 @@ export const AdminWorksPage: React.FC = () => {
               </div>
 
               {/* Category & Orientation */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-coquette-brown mb-1">
-                    หมวดหมู่ *
+                    หมวดหมู่ผลงาน *
                   </label>
                   <select
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setCategory(val)
+                      setIsCustomCategory(val === 'custom')
+                    }}
                     className="w-full px-3 py-2.5 rounded-xl border border-coquette-roseLight bg-coquette-bgCream/50 text-xs sm:text-sm focus:ring-2 focus:ring-coquette-rose outline-none"
                   >
-                    <option value="Shorts/Reels/TikTok">Shorts/Reels/TikTok</option>
-                    <option value="Vlog">Vlog</option>
-                    <option value="อื่นๆ">อื่นๆ</option>
+                    <optgroup label="🎬 งานคอนเทนต์ (Content & Video)">
+                      <option value="Shorts/Reels/TikTok">Shorts/Reels/TikTok</option>
+                      <option value="Vlog">Vlog</option>
+                      <option value="วิดีโอคอนเทนต์/รีวิว">วิดีโอคอนเทนต์/รีวิว</option>
+                    </optgroup>
+                    <optgroup label="🎨 งานกราฟิก (Graphic & Artwork)">
+                      <option value="งานกราฟิก - ปกคลิป (Thumbnail)">งานกราฟิก - ปกคลิป (Thumbnail)</option>
+                      <option value="งานกราฟิก - แบนเนอร์ (Banner)">งานกราฟิก - แบนเนอร์ (Banner)</option>
+                      <option value="งานกราฟิก - อาร์ตเวิร์ก (Artwork)">งานกราฟิก - อาร์ตเวิร์ก (Artwork)</option>
+                      <option value="งานกราฟิก - โซเชียลมีเดีย">งานกราฟิก - โซเชียลมีเดีย</option>
+                    </optgroup>
+                    <optgroup label="✨ อื่นๆ / ระบุเอง">
+                      <option value="อื่นๆ">อื่นๆ</option>
+                      <option value="custom">✏️ พิมพ์หมวดหมู่เอง...</option>
+                    </optgroup>
                   </select>
+
+                  {isCustomCategory && (
+                    <input
+                      type="text"
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      placeholder="ระบุชื่อหมวดหมู่เอง..."
+                      className="mt-2 w-full px-3 py-2 rounded-xl border border-coquette-roseLight bg-white text-xs sm:text-sm focus:ring-2 focus:ring-coquette-rose outline-none animate-fade-in"
+                      required
+                    />
+                  )}
                 </div>
 
                 <div>
                   <label className="block font-semibold text-coquette-brown mb-1">
-                    แนววิดีโอ *
+                    สัดส่วนชิ้นงาน *
                   </label>
                   <select
                     value={orientation}
                     onChange={(e) => setOrientation(e.target.value as any)}
                     className="w-full px-3 py-2.5 rounded-xl border border-coquette-roseLight bg-coquette-bgCream/50 text-xs sm:text-sm focus:ring-2 focus:ring-coquette-rose outline-none"
                   >
-                    <option value="vertical">แนวตั้ง (9:16)</option>
-                    <option value="horizontal">แนวนอน (16:9)</option>
+                    <option value="vertical">แนวตั้ง (9:16 / โปสเตอร์ / สตอรี่)</option>
+                    <option value="horizontal">แนวนอน (16:9 / ปกคลิป / แบนเนอร์)</option>
                   </select>
                 </div>
               </div>

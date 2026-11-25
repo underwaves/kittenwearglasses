@@ -5,7 +5,8 @@ import { WorkCard } from '../components/WorkCard'
 import { VideoModal } from '../components/VideoModal'
 import { RibbonBow } from '../components/decorations/RibbonBow'
 import { StarSparkle } from '../components/decorations/StarSparkle'
-import { Film, Smartphone, Monitor, Layers } from 'lucide-react'
+import { Film, Smartphone, Monitor, Layers, Palette, Sparkles } from 'lucide-react'
+import { getWorkType, WorkMainType, CONTENT_CATEGORIES, GRAPHIC_CATEGORIES } from '../../shared/workTypes'
 
 export const PortfolioPage: React.FC = () => {
   const { id: routeWorkId } = useParams<{ id?: string }>()
@@ -15,6 +16,7 @@ export const PortfolioPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
 
   // Filters
+  const [selectedMainType, setSelectedMainType] = useState<WorkMainType>('all')
   const [selectedOrientation, setSelectedOrientation] = useState<string>('all')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
@@ -22,7 +24,7 @@ export const PortfolioPage: React.FC = () => {
   const [activeWork, setActiveWork] = useState<Work | null>(null)
 
   useEffect(() => {
-    document.title = 'ผลงานตัดต่อวิดีโอทั้งหมด | @kittenwearglasses'
+    document.title = 'ผลงานคอนเทนต์ & กราฟิกดีไซน์ | @kittenwearglasses'
   }, [])
 
   useEffect(() => {
@@ -53,12 +55,12 @@ export const PortfolioPage: React.FC = () => {
     const foundInList = works.find((w) => w.id === numericId)
     if (foundInList) {
       setActiveWork(foundInList)
-      document.title = `${foundInList.title} | ผลงานตัดต่อ @kittenwearglasses`
+      document.title = `${foundInList.title} | ผลงาน @kittenwearglasses`
     } else if (!loading) {
       getWorkById(numericId).then((fetched) => {
         if (fetched) {
           setActiveWork(fetched)
-          document.title = `${fetched.title} | ผลงานตัดต่อ @kittenwearglasses`
+          document.title = `${fetched.title} | ผลงาน @kittenwearglasses`
         }
       })
     }
@@ -71,24 +73,71 @@ export const PortfolioPage: React.FC = () => {
 
   const handleCloseModal = () => {
     setActiveWork(null)
-    document.title = 'ผลงานตัดต่อวิดีโอทั้งหมด | @kittenwearglasses'
+    document.title = 'ผลงานคอนเทนต์ & กราฟิกดีไซน์ | @kittenwearglasses'
     if (routeWorkId) {
       navigate('/portfolio', { replace: true })
     }
   }
 
+  // Calculate counts for badges
+  const contentWorksCount = useMemo(() => {
+    return works.filter((w) => getWorkType(w.category) === 'content').length
+  }, [works])
+
+  const graphicWorksCount = useMemo(() => {
+    return works.filter((w) => getWorkType(w.category) === 'graphic').length
+  }, [works])
+
   // Filter logic
   const filteredWorks = useMemo(() => {
     return works.filter((work) => {
+      // 1. Main Type filter (content vs graphic)
+      if (selectedMainType !== 'all') {
+        const type = getWorkType(work.category)
+        if (type !== selectedMainType) return false
+      }
+
+      // 2. Orientation filter
       const matchOrientation =
         selectedOrientation === 'all' || work.orientation === selectedOrientation
-      const matchCategory =
-        selectedCategory === 'all' || work.category === selectedCategory
-      return matchOrientation && matchCategory
-    })
-  }, [works, selectedOrientation, selectedCategory])
+      if (!matchOrientation) return false
 
-  const categories = ['all', 'Shorts/Reels/TikTok', 'Vlog', 'อื่นๆ']
+      // 3. Sub-Category filter
+      if (selectedCategory !== 'all') {
+        if (work.category !== selectedCategory) return false
+      }
+
+      return true
+    })
+  }, [works, selectedMainType, selectedOrientation, selectedCategory])
+
+  // Available sub-categories based on selectedMainType
+  const availableCategories = useMemo(() => {
+    if (selectedMainType === 'content') {
+      const activeCats = Array.from(
+        new Set(
+          works
+            .filter((w) => getWorkType(w.category) === 'content')
+            .map((w) => w.category)
+        )
+      )
+      return ['all', ...Array.from(new Set([...activeCats, ...CONTENT_CATEGORIES]))]
+    }
+    if (selectedMainType === 'graphic') {
+      const activeCats = Array.from(
+        new Set(
+          works
+            .filter((w) => getWorkType(w.category) === 'graphic')
+            .map((w) => w.category)
+        )
+      )
+      return ['all', ...Array.from(new Set([...activeCats, ...GRAPHIC_CATEGORIES]))]
+    }
+
+    // 'all'
+    const activeCats = Array.from(new Set(works.map((w) => w.category)))
+    return ['all', ...activeCats]
+  }, [works, selectedMainType])
 
   return (
     <div className="space-y-8 pt-2">
@@ -96,7 +145,7 @@ export const PortfolioPage: React.FC = () => {
       <div className="text-center space-y-2.5">
         <div className="inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full bg-coquette-roseBg border border-coquette-roseLight text-[11px] font-bold text-coquette-rose uppercase tracking-wider">
           <StarSparkle size={11} />
-          <span>Our Showreel &amp; Works</span>
+          <span>Our Showreel &amp; Portfolio</span>
         </div>
         <div className="flex items-center justify-center space-x-2.5">
           <RibbonBow size={32} />
@@ -105,9 +154,60 @@ export const PortfolioPage: React.FC = () => {
           </h1>
           <RibbonBow size={32} />
         </div>
-        <p className="text-sm sm:text-base text-coquette-brown max-w-lg mx-auto">
-          รวมผลงานตัดต่อวิดีโอจาก @kittenwearglasses ทั้งแนวตั้งและแนวนอน กดที่การ์ดเพื่อเปิดดูคลิปตัวอย่างหรือคัดลอกลิงก์แชร์ได้ทันทีค่ะ 🎀
+        <p className="text-sm sm:text-base text-coquette-brown max-w-2xl mx-auto leading-relaxed">
+          รวมผลงานตัดต่อวิดีโอ คอนเทนต์โซเชียลมีเดีย และงานกราฟิกดีไซน์สไตล์ Coquette จาก @kittenwearglasses ทั้งงานคลิปและภาพนิ่ง กดที่การ์ดเพื่อเปิดดูรายละเอียดได้ทันทีค่ะ 🎀
         </p>
+      </div>
+
+      {/* Primary Section Switcher: ทั้งหมด / งานคอนเทนต์ / งานกราฟิก */}
+      <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedMainType('all')
+            setSelectedCategory('all')
+          }}
+          className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 flex items-center space-x-2 shadow-xs ${
+            selectedMainType === 'all'
+              ? 'bg-coquette-rose text-white shadow-coquette-md scale-105 ring-2 ring-coquette-roseLight'
+              : 'bg-white/95 text-coquette-brown hover:bg-coquette-roseBg hover:text-coquette-rose border border-coquette-roseLight/80'
+          }`}
+        >
+          <Sparkles size={15} />
+          <span>ผลงานทั้งหมด ({works.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedMainType('content')
+            setSelectedCategory('all')
+          }}
+          className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 flex items-center space-x-2 shadow-xs ${
+            selectedMainType === 'content'
+              ? 'bg-coquette-rose text-white shadow-coquette-md scale-105 ring-2 ring-coquette-roseLight'
+              : 'bg-white/95 text-coquette-brown hover:bg-coquette-roseBg hover:text-coquette-rose border border-coquette-roseLight/80'
+          }`}
+        >
+          <Film size={15} />
+          <span>🎬 งานคอนเทนต์ ({contentWorksCount})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedMainType('graphic')
+            setSelectedCategory('all')
+          }}
+          className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 flex items-center space-x-2 shadow-xs ${
+            selectedMainType === 'graphic'
+              ? 'bg-coquette-rose text-white shadow-coquette-md scale-105 ring-2 ring-coquette-roseLight'
+              : 'bg-white/95 text-coquette-brown hover:bg-coquette-roseBg hover:text-coquette-rose border border-coquette-roseLight/80'
+          }`}
+        >
+          <Palette size={15} />
+          <span>🎨 งานกราฟิก ({graphicWorksCount})</span>
+        </button>
       </div>
 
       {/* Modern Segmented Filter Toolbar */}
@@ -117,14 +217,14 @@ export const PortfolioPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
             <span className="text-xs font-bold text-coquette-brown uppercase tracking-wider flex items-center space-x-1.5">
               <Film size={14} className="text-coquette-rose" />
-              <span>สัดส่วนวิดีโอ:</span>
+              <span>สัดส่วนชิ้นงาน:</span>
             </span>
 
             <div className="inline-flex bg-coquette-bgCream border border-coquette-roseLight/80 rounded-full p-1 space-x-1">
               {[
                 { id: 'all', label: 'ทั้งหมด', icon: null },
-                { id: 'vertical', label: 'แนวตั้ง (9:16)', icon: Smartphone },
-                { id: 'horizontal', label: 'แนวนอน (16:9)', icon: Monitor },
+                { id: 'vertical', label: 'แนวตั้ง (9:16 / โปสเตอร์)', icon: Smartphone },
+                { id: 'horizontal', label: 'แนวนอน (16:9 / ปกคลิป)', icon: Monitor },
               ].map((btn) => {
                 const Icon = btn.icon
                 const active = selectedOrientation === btn.id
@@ -156,21 +256,27 @@ export const PortfolioPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-bold text-coquette-brown flex items-center space-x-1.5 mr-1">
             <Layers size={14} className="text-coquette-rose" />
-            <span>หมวดหมู่:</span>
+            <span>หมวดหมู่ย่อย:</span>
           </span>
-          {categories.map((cat) => {
+          {availableCategories.map((cat) => {
             const active = selectedCategory === cat
             return (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   active
                     ? 'bg-coquette-priceBlue text-coquette-rose border-2 border-coquette-priceBorder shadow-xs'
                     : 'bg-white text-coquette-brownMuted hover:text-coquette-rose border border-coquette-roseLight/70'
                 }`}
               >
-                {cat === 'all' ? 'ทุกหมวดหมู่' : cat}
+                {cat === 'all'
+                  ? selectedMainType === 'content'
+                    ? 'ทุกงานคอนเทนต์'
+                    : selectedMainType === 'graphic'
+                    ? 'ทุกงานกราฟิก'
+                    : 'ทุกหมวดหมู่'
+                  : cat}
               </button>
             )
           })}
@@ -196,10 +302,11 @@ export const PortfolioPage: React.FC = () => {
             ไม่พบผลงานตามเงื่อนไขที่เลือก
           </h3>
           <p className="text-xs sm:text-sm text-coquette-brownMuted">
-            ลองปรับตัวกรองแนววิดีโอหรือหมวดหมู่อื่นเพื่อดูผลงานเพิ่มเติมได้นะคะ
+            ลองปรับแท็บประเภทงานหลัก หรือเลือกหมวดหมู่อื่นเพื่อดูผลงานเพิ่มเติมได้นะคะ
           </p>
           <button
             onClick={() => {
+              setSelectedMainType('all')
               setSelectedOrientation('all')
               setSelectedCategory('all')
             }}
@@ -216,7 +323,7 @@ export const PortfolioPage: React.FC = () => {
         </div>
       )}
 
-      {/* Video Modal Player */}
+      {/* Video / Artwork Modal Player */}
       {activeWork && (
         <VideoModal
           isOpen={!!activeWork}
@@ -226,6 +333,8 @@ export const PortfolioPage: React.FC = () => {
           workId={activeWork.id}
           orientation={activeWork.orientation}
           provider={activeWork.provider}
+          category={activeWork.category}
+          coverKey={activeWork.cover_key}
         />
       )}
     </div>
